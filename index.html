@@ -1,0 +1,2897 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Advanced Tower Defense - Fully Moddable</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+      color: #eee;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      overflow: hidden;
+      display: flex;
+      gap: 15px;
+      padding: 15px;
+      height: 100vh;
+    }
+
+    #leftPanel {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      width: 280px;
+    }
+
+    #mainGame {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    #rightPanel {
+      width: 320px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .panel {
+      background: rgba(0,0,0,0.7);
+      border: 2px solid rgba(78, 205, 196, 0.3);
+      border-radius: 8px;
+      padding: 15px;
+      backdrop-filter: blur(10px);
+    }
+
+    #gameCanvas {
+      background: #1a1a2e;
+      border: 2px solid #4ecdc4;
+      box-shadow: 0 8px 32px rgba(78, 205, 196, 0.3);
+      border-radius: 8px;
+      cursor: crosshair;
+    }
+
+    /* HUD */
+    #hud {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .hud-item {
+      background: rgba(78, 205, 196, 0.1);
+      padding: 10px;
+      border-radius: 5px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 14px;
+    }
+    .hud-value {
+      color: #4ecdc4;
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    /* Wave System */
+    #waveControl {
+      text-align: center;
+    }
+    #startWaveBtn {
+      width: 100%;
+      padding: 15px;
+      font-size: 16px;
+      font-weight: bold;
+      background: linear-gradient(135deg, #2ecc71, #27ae60);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: 0.3s;
+      margin-top: 10px;
+    }
+    #startWaveBtn:hover:not(:disabled) {
+      transform: scale(1.05);
+      box-shadow: 0 5px 20px rgba(46, 204, 113, 0.5);
+    }
+    #startWaveBtn:disabled {
+      background: #555;
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+
+    #skipWaveBtn {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      background: #f39c12;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    #skipWaveBtn:hover:not(:disabled) {
+      background: #e67e22;
+    }
+    #skipWaveBtn:disabled {
+      background: #555;
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+
+    #gameModeSelect {
+      width: 100%;
+      padding: 8px;
+      border-radius: 5px;
+      background: rgba(0,0,0,0.5);
+      color: white;
+      border: 1px solid #4ecdc4;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    /* Wave Preview */
+    #wavePreview {
+      max-height: 200px;
+      overflow-y: auto;
+      margin-top: 10px;
+    }
+    .wave-enemy-item {
+      background: rgba(255,255,255,0.05);
+      padding: 8px;
+      margin: 5px 0;
+      border-radius: 5px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+    }
+    .wave-enemy-count {
+      background: #e94560;
+      padding: 3px 8px;
+      border-radius: 10px;
+      font-weight: bold;
+    }
+
+    /* Tower Shop */
+    #towerShop {
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    .tower-card {
+      background: linear-gradient(135deg, #e94560, #c23a50);
+      border: 2px solid #ff6b6b;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .tower-card:hover:not(.disabled) {
+      transform: translateX(5px);
+      box-shadow: 0 5px 15px rgba(233, 69, 96, 0.5);
+    }
+    .tower-card.disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      filter: grayscale(1);
+    }
+    .tower-card.selected {
+      border-color: #4ecdc4;
+      box-shadow: 0 0 20px rgba(78, 205, 196, 0.6);
+    }
+    .tower-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .tower-icon {
+      font-size: 24px;
+    }
+    .tower-name {
+      font-weight: bold;
+      font-size: 14px;
+      flex: 1;
+      margin-left: 10px;
+    }
+    .tower-cost {
+      background: rgba(0,0,0,0.3);
+      padding: 5px 10px;
+      border-radius: 5px;
+      font-weight: bold;
+      color: #ffd700;
+    }
+    .tower-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5px;
+      font-size: 11px;
+      opacity: 0.9;
+    }
+    .tower-stat {
+      background: rgba(0,0,0,0.2);
+      padding: 3px 6px;
+      border-radius: 3px;
+    }
+
+    /* Selected Tower Info */
+    #selectedTowerInfo {
+      min-height: 150px;
+    }
+    .upgrade-btn {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      background: #3498db;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .upgrade-btn:hover:not(:disabled) {
+      background: #5dade2;
+    }
+    .upgrade-btn:disabled {
+      background: #555;
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .sell-btn {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      background: #e74c3c;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .sell-btn:hover {
+      background: #c0392b;
+    }
+
+    /* Mod Panel */
+    #modPanel {
+      max-height: 500px;
+      overflow-y: auto;
+    }
+    #modEditor {
+      width: 100%;
+      height: 250px;
+      background: #1a1a2e;
+      color: #4ecdc4;
+      border: 1px solid #444;
+      border-radius: 4px;
+      padding: 10px;
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      resize: vertical;
+    }
+    .btn {
+      padding: 8px 15px;
+      border: none;
+      border-radius: 5px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.2s;
+      margin: 3px;
+      font-size: 12px;
+    }
+    .btn-primary { background: #4ecdc4; color: #000; }
+    .btn-primary:hover { background: #6fe9df; }
+    .btn-secondary { background: #e94560; color: #fff; }
+    .btn-secondary:hover { background: #ff6b6b; }
+    .btn-success { background: #2ecc71; color: #fff; }
+    .btn-info { background: #3498db; color: #fff; }
+
+    #modList {
+      margin-top: 10px;
+      max-height: 150px;
+      overflow-y: auto;
+    }
+    .mod-item {
+      padding: 8px;
+      margin: 5px 0;
+      background: rgba(78, 205, 196, 0.1);
+      border-left: 3px solid #4ecdc4;
+      border-radius: 3px;
+      font-size: 12px;
+    }
+
+    h3 {
+      color: #4ecdc4;
+      margin: 10px 0;
+      font-size: 16px;
+      border-bottom: 2px solid rgba(78, 205, 196, 0.3);
+      padding-bottom: 5px;
+    }
+
+    input[type="file"] { display: none; }
+    label.file-label {
+      display: inline-block;
+      padding: 8px 15px;
+      background: #e94560;
+      color: white;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 12px;
+    }
+    label.file-label:hover {
+      background: #ff6b6b;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: rgba(0,0,0,0.3); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb { background: #4ecdc4; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #6fe9df; }
+
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 5px 0;
+      font-size: 13px;
+    }
+
+    .game-controls {
+      display: flex;
+      gap: 5px;
+      margin-top: 10px;
+    }
+    .game-controls button {
+      flex: 1;
+      padding: 8px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 11px;
+    }
+
+    .wave-modifier-display {
+      background: rgba(241, 196, 15, 0.2);
+      border: 1px solid #f1c40f;
+      border-radius: 5px;
+      padding: 8px;
+      margin-top: 10px;
+      font-size: 12px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Left Panel: Tower Shop & Selected Tower -->
+<div id="leftPanel">
+  <div class="panel">
+    <h3>🏗️ Tower Shop</h3>
+    <div id="towerShop"></div>
+  </div>
+  
+  <div class="panel" id="selectedTowerInfo">
+    <h3>🔧 Selected Tower</h3>
+    <div id="towerInfoContent">Click a tower to view details</div>
+  </div>
+</div>
+
+<!-- Main Game Area -->
+<div id="mainGame">
+  <div class="panel" id="hud">
+    <div class="hud-item">
+      <span>💰 Gold</span>
+      <span class="hud-value" id="gold">200</span>
+    </div>
+    <div class="hud-item">
+      <span>❤️ Lives</span>
+      <span class="hud-value" id="lives">20</span>
+    </div>
+    <div class="hud-item">
+      <span>🌊 Wave</span>
+      <span class="hud-value" id="wave">0</span>
+    </div>
+    <div class="hud-item">
+      <span>🎯 Score</span>
+      <span class="hud-value" id="score">0</span>
+    </div>
+  </div>
+  
+  <canvas id="gameCanvas" width="1000" height="600"></canvas>
+</div>
+
+<!-- Right Panel: Wave Control & Mods -->
+<div id="rightPanel">
+  <div class="panel" id="waveControl">
+    <h3>🌊 Wave Control</h3>
+    <div class="info-row">
+      <span>Enemies Remaining:</span>
+      <span id="enemiesRemaining">0</span>
+    </div>
+    
+    <div style="margin-top: 10px;">
+      <h3 style="font-size: 14px; margin-bottom: 5px;">🎮 Game Mode</h3>
+      <select id="gameModeSelect" onchange="Game.setGameMode(this.value)">
+        <option value="normal">Normal Mode</option>
+        <option value="endless">Endless Mode</option>
+        <option value="timeAttack">Time Attack (20 waves)</option>
+        <option value="survival">Survival (5 lives)</option>
+      </select>
+    </div>
+    
+    <button id="startWaveBtn" onclick="Game.startWave()">▶️ Start Next Wave</button>
+    <button id="skipWaveBtn" onclick="Game.skipCurrentWave()">⏭️ Skip Wave (-50% Gold)</button>
+    
+    <div id="waveModifierDisplay"></div>
+    
+    <h3 style="margin-top: 15px;">📋 Next Wave Preview</h3>
+    <div id="wavePreview">
+      <em style="opacity: 0.6; font-size: 12px;">Click "Start Wave" to see enemies</em>
+    </div>
+  </div>
+  
+  <div class="panel" id="modPanel">
+    <h3>📦 Mod Manager</h3>
+    
+    <div style="display: flex; gap: 5px; margin-bottom: 10px; flex-wrap: wrap;">
+      <label for="fileInput" class="file-label">📁 Load File</label>
+      <input type="file" id="fileInput" accept=".js" onchange="loadModFromFile(event)">
+      <button class="btn btn-info" onclick="showModExamples()">📚 Examples</button>
+    </div>
+
+    <textarea id="modEditor" placeholder="// Paste mod code here or load from file..."></textarea>
+
+    <div style="margin-top: 8px;">
+      <button class="btn btn-primary" onclick="executeModCode()">▶️ Load Mod</button>
+      <button class="btn btn-secondary" onclick="clearEditor()">🗑️ Clear</button>
+    </div>
+
+    <div class="game-controls">
+      <button class="btn-success" onclick="saveGame()">💾 Save</button>
+      <button class="btn-info" onclick="loadGame()">📂 Load</button>
+      <button class="btn-secondary" onclick="resetGame()">🔄 Reset</button>
+    </div>
+
+    <h3>📋 Loaded Mods</h3>
+    <div id="modList">
+      <div class="mod-item">✓ Core Engine</div>
+    </div>
+  </div>
+</div>
+<script>
+// ============================================
+// 🎮 CORE GAME ENGINE
+// ============================================
+
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+// Global Game State
+const Game = {
+  gold: 200,
+  lives: 20,
+  wave: 0,
+  score: 0,
+  running: false,
+  waveActive: false,
+  
+  gameMode: 'normal',
+  waveModifier: null,
+  perfectWave: true,
+  fastKills: 0,
+  bonusGold: 0,
+  
+  resources: {
+    gold: 200,
+    mana: 0,
+    souls: 0,
+    energy: 100
+  },
+  
+  globalModifiers: [],
+  customParticleEmitters: [],
+  stateHistory: [],
+  maxHistoryLength: 50,
+  sessionData: {},
+  
+  towers: [],
+  enemies: [],
+  projectiles: [],
+  particles: [],
+  effects: [],
+  
+  selectedTower: null,
+  placingTower: null,
+  
+  mouseX: 0,
+  mouseY: 0,
+  
+  path: [
+    {x: 0, y: 300},
+    {x: 250, y: 300},
+    {x: 250, y: 150},
+    {x: 500, y: 150},
+    {x: 500, y: 450},
+    {x: 750, y: 450},
+    {x: 750, y: 300},
+    {x: 1000, y: 300}
+  ],
+  
+  currentWaveEnemies: [],
+  nextWavePreview: [],
+  waveStartTime: null,
+  
+  startWave(skipWave = false) {
+    if (this.waveActive) return;
+    
+    this.wave++;
+    this.waveActive = true;
+    this.waveStartTime = Date.now();
+    this.perfectWave = true;
+    this.fastKills = 0;
+    updateUI();
+    
+    eventHooks.waveStart.forEach(fn => fn(this.wave));
+    
+    if (Math.random() < 0.3 && window.waveModifiers) {
+      const modifiers = Object.values(window.waveModifiers);
+      this.waveModifier = modifiers[Math.floor(Math.random() * modifiers.length)];
+      console.log('🎲 Wave Modifier:', this.waveModifier.name);
+      updateWaveModifierDisplay();
+    } else {
+      this.waveModifier = null;
+      updateWaveModifierDisplay();
+    }
+    
+    this.currentWaveEnemies = this.generateWaveComposition(this.wave);
+    this.nextWavePreview = this.generateWaveComposition(this.wave + 1);
+    
+    if (this.currentWaveEnemies.length === 0) {
+      alert('⚠️ No enemies registered!');
+      this.wave--;
+      this.waveActive = false;
+      return;
+    }
+    
+    updateWavePreview();
+    
+    if (skipWave) {
+      this.bonusGold = -Math.floor(25 * this.wave);
+    }
+    
+    this.currentWaveEnemies.forEach((enemyType, index) => {
+      setTimeout(() => {
+        this.spawnEnemy(enemyType);
+      }, index * 700);
+    });
+  },
+  
+  skipCurrentWave() {
+    if (!this.waveActive) {
+      this.startWave(true);
+    }
+  },
+  
+  setGameMode(mode) {
+    this.gameMode = mode;
+    console.log('🎮 Game Mode:', mode);
+    
+    switch(mode) {
+      case 'endless':
+        this.lives = 20;
+        break;
+      case 'timeAttack':
+        this.maxWaves = 20;
+        this.startTime = Date.now();
+        break;
+      case 'survival':
+        this.lives = 5;
+        break;
+    }
+    
+    updateUI();
+  },
+  
+  cycleTowerTargeting(tower) {
+    const modes = ['first', 'last', 'strongest', 'weakest', 'closest'];
+    const currentIndex = modes.indexOf(tower.targetMode || 'first');
+    tower.targetMode = modes[(currentIndex + 1) % modes.length];
+    
+    console.log(`🎯 ${tower.name} targeting: ${tower.targetMode}`);
+    updateSelectedTowerInfo();
+  },
+  
+  getTargetedEnemy(tower) {
+    const enemies = GameAPI.getEnemiesInRange(tower.x, tower.y, tower.range);
+    if (enemies.length === 0) return null;
+    
+    switch(tower.targetMode) {
+      case 'first':
+        return enemies.reduce((best, e) => 
+          e.pathIndex > best.pathIndex ? e : best, enemies[0]);
+      
+      case 'last':
+        return enemies.reduce((best, e) => 
+          e.pathIndex < best.pathIndex ? e : best, enemies[0]);
+      
+      case 'strongest':
+        return enemies.reduce((best, e) => 
+          e.hp > best.hp ? e : best, enemies[0]);
+      
+      case 'weakest':
+        return enemies.reduce((best, e) => 
+          e.hp < best.hp ? e : best, enemies[0]);
+      
+      case 'closest':
+        return GameAPI.getNearestEnemy(tower.x, tower.y, tower.range);
+      
+      default:
+        return enemies[0];
+    }
+  },
+  
+  generateWaveComposition(waveNum) {
+    const enemyTypes = Object.keys(enemyRegistry);
+    if (enemyTypes.length === 0) return [];
+    
+    const composition = [];
+    let baseCount = 5 + waveNum * 2;
+    
+    if (this.gameMode === 'endless') {
+      baseCount = Math.floor(5 + waveNum * 2.5);
+    }
+    
+    if (waveNum % 10 === 0 && enemyRegistry['boss']) {
+      composition.push('boss');
+    }
+    
+    if (enemyRegistry['basic_creep']) {
+      const basicCount = Math.max(3, Math.floor(baseCount * 0.5));
+      for (let i = 0; i < basicCount; i++) {
+        composition.push('basic_creep');
+      }
+    }
+    
+    if (waveNum >= 2 && enemyRegistry['fast_creep']) {
+      const fastCount = Math.floor(baseCount * 0.3);
+      for (let i = 0; i < fastCount; i++) {
+        composition.push('fast_creep');
+      }
+    }
+    
+    if (waveNum >= 3 && enemyRegistry['tank_creep']) {
+      const tankCount = Math.max(1, Math.floor(waveNum / 3));
+      for (let i = 0; i < tankCount; i++) {
+        composition.push('tank_creep');
+      }
+    }
+    
+    if (waveNum >= 5 && enemyRegistry['flying_enemy'] && Math.random() < 0.4) {
+      composition.push('flying_enemy');
+    }
+    
+    if (waveNum >= 7 && enemyRegistry['shielded_enemy'] && Math.random() < 0.3) {
+      composition.push('shielded_enemy');
+    }
+    
+    if (composition.length === 0) {
+      for (let i = 0; i < baseCount; i++) {
+        composition.push(enemyTypes[i % enemyTypes.length]);
+      }
+    }
+    
+    return composition;
+  },
+  
+  spawnEnemy(type) {
+    const def = enemyRegistry[type];
+    if (!def) {
+      console.warn(`Enemy type "${type}" not found`);
+      return;
+    }
+    
+    let hpMultiplier = 1 + this.wave * 0.15;
+    let speedMultiplier = 1;
+    
+    if (this.waveModifier) {
+      if (this.waveModifier.hpBoost) hpMultiplier *= this.waveModifier.hpBoost;
+      if (this.waveModifier.speedBoost) speedMultiplier = this.waveModifier.speedBoost;
+    }
+    
+    const enemy = {
+      ...JSON.parse(JSON.stringify(def)),
+      id: 'enemy_' + Date.now() + Math.random(),
+      x: this.path[0].x,
+      y: this.path[0].y,
+      pathIndex: 0,
+      hp: def.hp * hpMultiplier,
+      maxHp: def.hp * hpMultiplier,
+      baseSpeed: def.speed,
+      speed: def.speed * speedMultiplier,
+      conditions: [],
+      statusEffects: [],
+      speedMultiplier: 1,
+      shield: def.shield || 0,
+      maxShield: def.shield || 0
+    };
+    
+    this.enemies.push(enemy);
+    updateUI();
+  },
+  
+  addGold(amount) {
+    if (typeof ResourceManager !== 'undefined') {
+      ResourceManager.addResource('gold', amount);
+      this.gold = ResourceManager.getResource('gold');
+    } else {
+      this.gold += amount;
+    }
+    updateUI();
+  },
+  
+  removeLife() {
+    this.lives--;
+    this.perfectWave = false;
+    
+    canvas.style.transform = 'translate(' + (Math.random()*10-5) + 'px,' + (Math.random()*10-5) + 'px)';
+    setTimeout(() => canvas.style.transform = '', 100);
+    
+    updateUI();
+    
+    if (this.lives <= 0 && this.gameMode !== 'endless') {
+      eventHooks.gameOver.forEach(fn => fn(this.score));
+      setTimeout(() => {
+        alert('💀 Game Over!\n\n🎯 Final Score: ' + this.score + '\n🌊 Waves Survived: ' + this.wave);
+        resetGame();
+      }, 100);
+    }
+  },
+  
+  upgradeTower(tower) {
+    if (!tower) return;
+    
+    tower.level = (tower.level || 1) + 1;
+    const upgradeCost = Math.floor(tower.cost * 0.5 * tower.level);
+    
+    if (this.gold >= upgradeCost && tower.level <= tower.maxLevel) {
+      this.gold -= upgradeCost;
+      
+      tower.damage = Math.round(tower.damage * 1.3);
+      tower.range = Math.round(tower.range * 1.1);
+      tower.cooldown = Math.round(tower.cooldown * 0.9);
+      
+      for (let i = 0; i < 20; i++) {
+        GameAPI.spawnParticle(
+          tower.x + (Math.random()-0.5)*40,
+          tower.y + (Math.random()-0.5)*40,
+          '#ffd700', 4, 30
+        );
+      }
+      
+      eventHooks.towerUpgraded?.forEach(fn => fn(tower));
+      updateSelectedTowerInfo();
+      updateUI();
+    }
+  },
+  
+  sellTower(tower) {
+    if (!tower) return;
+    
+    const sellValue = Math.floor(tower.cost * 0.7 * (tower.level || 1));
+    this.gold += sellValue;
+    
+    this.towers = this.towers.filter(t => t.id !== tower.id);
+    
+    if (this.selectedTower === tower) {
+      this.selectedTower = null;
+      updateSelectedTowerInfo();
+    }
+    
+    updateUI();
+  }
+};
+
+// ============================================
+// 🧩 REGISTRIES
+// ============================================
+
+const towerRegistry = {};
+const enemyRegistry = {};
+const projectileRegistry = {};
+const behaviorRegistry = {};
+const conditionRegistry = {};
+const abilityRegistry = {};
+const resourceRegistry = {};
+const eventHooks = {
+  waveStart: [],
+  waveEnd: [],
+  enemyKilled: [],
+  enemySpawned: [],
+  towerPlaced: [],
+  towerUpgraded: [],
+  towerSold: [],
+  projectileFired: [],
+  projectileHit: [],
+  projectileMiss: [],
+  conditionApplied: [],
+  resourceChanged: [],
+  modifierApplied: [],
+  modifierRemoved: [],
+  replayAction: [],
+  renderUI: [],
+  renderWorld: [],
+  tick: [],
+  gameOver: []
+};
+
+// ============================================
+// 💎 RESOURCE SYSTEM
+// ============================================
+
+window.ResourceManager = {
+  registerResource(id, config) {
+    resourceRegistry[id] = {
+      id,
+      name: config.name || id,
+      icon: config.icon || '💎',
+      color: config.color || '#4ecdc4',
+      defaultValue: config.defaultValue || 0,
+      max: config.max || Infinity,
+      min: config.min || 0,
+      displayInHUD: config.displayInHUD !== false
+    };
+    
+    if (Game.resources[id] === undefined) {
+      Game.resources[id] = config.defaultValue || 0;
+    }
+    
+    console.log(`✅ Resource: ${id}`);
+    updateResourceHUD();
+  },
+  
+  getResource(id) {
+    return Game.resources[id] || 0;
+  },
+  
+  setResource(id, amount) {
+    const resource = resourceRegistry[id];
+    if (!resource) return false;
+    
+    amount = Math.max(resource.min, Math.min(resource.max, amount));
+    Game.resources[id] = amount;
+    updateResourceHUD();
+    eventHooks.resourceChanged?.forEach(fn => fn(id, amount));
+    return true;
+  },
+  
+  addResource(id, amount) {
+    const current = this.getResource(id);
+    return this.setResource(id, current + amount);
+  },
+  
+  removeResource(id, amount) {
+    return this.addResource(id, -amount);
+  },
+  
+  hasResources(costs) {
+    for (let [id, amount] of Object.entries(costs)) {
+      if (this.getResource(id) < amount) return false;
+    }
+    return true;
+  },
+  
+  spendResources(costs) {
+    if (!this.hasResources(costs)) return false;
+    
+    for (let [id, amount] of Object.entries(costs)) {
+      this.removeResource(id, amount);
+    }
+    return true;
+  }
+};
+
+function updateResourceHUD() {
+  const hudContainer = document.getElementById('hud');
+  if (!hudContainer) return;
+  
+  const existing = hudContainer.querySelectorAll('.resource-display');
+  existing.forEach(el => el.remove());
+  
+  Object.values(resourceRegistry).forEach(resource => {
+    if (resource.displayInHUD) {
+      const div = document.createElement('div');
+      div.className = 'hud-item resource-display';
+      div.innerHTML = `
+        <span>${resource.icon} ${resource.name}</span>
+        <span class="hud-value" style="color: ${resource.color}" id="resource-${resource.id}">
+          ${Math.floor(Game.resources[resource.id] || 0)}
+        </span>
+      `;
+      hudContainer.appendChild(div);
+    }
+  });
+}
+
+ResourceManager.registerResource('gold', {
+  name: 'Gold',
+  icon: '💰',
+  color: '#ffd700',
+  defaultValue: 200,
+  displayInHUD: true
+});
+
+// ============================================
+// 💾 STATE MANAGEMENT SYSTEM
+// ============================================
+
+window.StateManager = {
+  modData: {},
+  
+  saveModData(modId, key, value) {
+    if (!this.modData[modId]) this.modData[modId] = {};
+    this.modData[modId][key] = value;
+    
+    try {
+      localStorage.setItem('modData_' + modId, JSON.stringify(this.modData[modId]));
+    } catch(e) {
+      console.error('Failed to save mod data:', e);
+    }
+  },
+  
+  loadModData(modId, key, defaultValue = null) {
+    if (!this.modData[modId]) {
+      try {
+        const saved = localStorage.getItem('modData_' + modId);
+        if (saved) {
+          this.modData[modId] = JSON.parse(saved);
+        }
+      } catch(e) {
+        console.error('Failed to load mod data:', e);
+      }
+    }
+    
+    if (this.modData[modId] && this.modData[modId][key] !== undefined) {
+      return this.modData[modId][key];
+    }
+    return defaultValue;
+  },
+  
+  clearModData(modId) {
+    delete this.modData[modId];
+    localStorage.removeItem('modData_' + modId);
+  },
+  
+  setSessionData(key, value) {
+    Game.sessionData[key] = value;
+  },
+  
+  getSessionData(key, defaultValue = null) {
+    return Game.sessionData[key] !== undefined ? Game.sessionData[key] : defaultValue;
+  },
+  
+  saveSnapshot(label = 'snapshot') {
+    const snapshot = {
+      label,
+      timestamp: Date.now(),
+      state: {
+        gold: Game.gold,
+        lives: Game.lives,
+        wave: Game.wave,
+        score: Game.score,
+        resources: {...Game.resources},
+        towers: JSON.parse(JSON.stringify(Game.towers)),
+        enemies: JSON.parse(JSON.stringify(Game.enemies))
+      }
+    };
+    
+    Game.stateHistory.push(snapshot);
+    
+    if (Game.stateHistory.length > Game.maxHistoryLength) {
+      Game.stateHistory.shift();
+    }
+    
+    console.log('📸 Snapshot saved:', label);
+    return snapshot;
+  },
+  
+  loadSnapshot(index = -1) {
+    if (Game.stateHistory.length === 0) {
+      console.warn('No snapshots available');
+      return false;
+    }
+    
+    if (index < 0) {
+      index = Game.stateHistory.length + index;
+    }
+    
+    const snapshot = Game.stateHistory[index];
+    if (!snapshot) return false;
+    
+    Game.gold = snapshot.state.gold;
+    Game.lives = snapshot.state.lives;
+    Game.wave = snapshot.state.wave;
+    Game.score = snapshot.state.score;
+    Game.resources = {...snapshot.state.resources};
+    Game.towers = JSON.parse(JSON.stringify(snapshot.state.towers));
+    Game.enemies = JSON.parse(JSON.stringify(snapshot.state.enemies));
+    
+    updateUI();
+    console.log('📂 Snapshot loaded:', snapshot.label);
+    return true;
+  },
+  
+  undo() {
+    return this.loadSnapshot(-2);
+  }
+};
+
+// ============================================
+// 🌐 GLOBAL MODIFIERS SYSTEM
+// ============================================
+
+window.ModifierManager = {
+  activeModifiers: [],
+  
+  registerGlobalModifier(id, config) {
+    const modifier = {
+      id,
+      name: config.name || id,
+      description: config.description || '',
+      icon: config.icon || '⚡',
+      duration: config.duration || Infinity,
+      startTime: Date.now(),
+      
+      goldMultiplier: config.goldMultiplier || 1,
+      damageMultiplier: config.damageMultiplier || 1,
+      speedMultiplier: config.speedMultiplier || 1,
+      rangeMultiplier: config.rangeMultiplier || 1,
+      cooldownMultiplier: config.cooldownMultiplier || 1,
+      
+      enemyHpMultiplier: config.enemyHpMultiplier || 1,
+      enemySpeedMultiplier: config.enemySpeedMultiplier || 1,
+      enemyRewardMultiplier: config.enemyRewardMultiplier || 1,
+      
+      onTick: config.onTick || null,
+      onApply: config.onApply || null,
+      onRemove: config.onRemove || null,
+      
+      affectsTowers: config.affectsTowers !== false,
+      affectsEnemies: config.affectsEnemies !== false,
+      affectsProjectiles: config.affectsProjectiles !== false
+    };
+    
+    this.activeModifiers.push(modifier);
+    
+    if (modifier.onApply) {
+      modifier.onApply(Game);
+    }
+    
+    console.log(`🌐 Global Modifier applied: ${modifier.name}`);
+    eventHooks.modifierApplied?.forEach(fn => fn(modifier));
+    
+    return modifier;
+  },
+  
+  removeModifier(id) {
+    const index = this.activeModifiers.findIndex(m => m.id === id);
+    if (index === -1) return false;
+    
+    const modifier = this.activeModifiers[index];
+    
+    if (modifier.onRemove) {
+      modifier.onRemove(Game);
+    }
+    
+    this.activeModifiers.splice(index, 1);
+    console.log(`🌐 Global Modifier removed: ${modifier.name}`);
+    eventHooks.modifierRemoved?.forEach(fn => fn(modifier));
+    
+    return true;
+  },
+  
+  getActiveModifiers() {
+    return [...this.activeModifiers];
+  },
+  
+  getTotalMultiplier(property) {
+    let total = 1;
+    this.activeModifiers.forEach(mod => {
+      if (mod[property]) {
+        total *= mod[property];
+      }
+    });
+    return total;
+  },
+  
+  tick() {
+    const now = Date.now();
+    
+    this.activeModifiers = this.activeModifiers.filter(mod => {
+      if (mod.duration !== Infinity) {
+        const elapsed = now - mod.startTime;
+        if (elapsed >= mod.duration) {
+          if (mod.onRemove) mod.onRemove(Game);
+          console.log(`⏱️ Modifier expired: ${mod.name}`);
+          return false;
+        }
+      }
+      
+      if (mod.onTick) {
+        mod.onTick(Game, now - mod.startTime);
+      }
+      
+      return true;
+    });
+  },
+  
+  applyToTower(tower) {
+    tower.effectiveDamage = tower.damage;
+    tower.effectiveRange = tower.range;
+    tower.effectiveCooldown = tower.cooldown;
+    
+    this.activeModifiers.forEach(mod => {
+      if (mod.affectsTowers) {
+        if (mod.damageMultiplier !== 1) {
+          tower.effectiveDamage *= mod.damageMultiplier;
+        }
+        if (mod.rangeMultiplier !== 1) {
+          tower.effectiveRange *= mod.rangeMultiplier;
+        }
+        if (mod.cooldownMultiplier !== 1) {
+          tower.effectiveCooldown *= mod.cooldownMultiplier;
+        }
+      }
+    });
+  },
+  
+  applyToEnemy(enemy) {
+    this.activeModifiers.forEach(mod => {
+      if (mod.affectsEnemies) {
+        if (mod.enemyHpMultiplier !== 1) {
+          enemy.hp *= mod.enemyHpMultiplier;
+          enemy.maxHp *= mod.enemyHpMultiplier;
+        }
+        if (mod.enemySpeedMultiplier !== 1) {
+          enemy.speed *= mod.enemySpeedMultiplier;
+        }
+        if (mod.enemyRewardMultiplier !== 1) {
+          enemy.reward = Math.floor(enemy.reward * mod.enemyRewardMultiplier);
+        }
+      }
+    });
+  }
+};
+
+// ============================================
+// 💫 ADVANCED PARTICLE SYSTEM
+// ============================================
+
+const particleTypeRegistry = {};
+
+window.ParticleManager = {
+  registerParticleType(id, config) {
+    particleTypeRegistry[id] = {
+      id,
+      behavior: config.behavior || 'default',
+      color: config.color || '#ffffff',
+      size: config.size || 3,
+      shape: config.shape || 'square',
+      lifetime: config.lifetime || 60,
+      speed: config.speed || 2,
+      gravity: config.gravity || 0.05,
+      friction: config.friction || 0.98,
+      rotation: config.rotation || 0,
+      rotationSpeed: config.rotationSpeed || 0,
+      fadeOut: config.fadeOut !== false,
+      shrink: config.shrink || false,
+      grow: config.grow || false,
+      colorShift: config.colorShift || null,
+      onTick: config.onTick || null,
+      onDeath: config.onDeath || null
+    };
+    
+    console.log(`✅ Particle Type: ${id}`);
+  },
+  
+  spawnParticle(typeId, x, y, velocityX, velocityY) {
+    const type = particleTypeRegistry[typeId];
+    if (!type) {
+      console.warn(`Particle type ${typeId} not found`);
+      return;
+    }
+    
+    const particle = {
+      ...type,
+      x, y,
+      vx: velocityX !== undefined ? velocityX : (Math.random()-0.5)*type.speed,
+      vy: velocityY !== undefined ? velocityY : (Math.random()-0.5)*type.speed,
+      life: type.lifetime,
+      maxLife: type.lifetime,
+      angle: type.rotation,
+      currentSize: type.size,
+      currentColor: type.color
+    };
+    
+    Game.particles.push(particle);
+    return particle;
+  },
+  
+  createEmitter(config) {
+    const emitter = {
+      id: 'emitter_' + Date.now(),
+      x: config.x || 0,
+      y: config.y || 0,
+      particleType: config.particleType,
+      rate: config.rate || 10,
+      timer: 0,
+      duration: config.duration || Infinity,
+      elapsed: 0,
+      active: true,
+      shape: config.shape || 'point',
+      radius: config.radius || 0,
+      angle: config.angle || 0,
+      spread: config.spread || Math.PI * 2,
+      attachTo: config.attachTo || null,
+      
+      tick() {
+        if (!this.active) return;
+        
+        this.elapsed++;
+        this.timer++;
+        
+        if (this.attachTo) {
+          this.x = this.attachTo.x;
+          this.y = this.attachTo.y;
+        }
+        
+        if (this.duration !== Infinity && this.elapsed >= this.duration) {
+          this.active = false;
+          return;
+        }
+        
+        const particlesPerFrame = this.rate / 60;
+        if (this.timer >= 60 / this.rate) {
+          this.timer = 0;
+          
+          for (let i = 0; i < particlesPerFrame; i++) {
+            this.emit();
+          }
+        }
+      },
+      
+      emit() {
+        let x = this.x;
+        let y = this.y;
+        let vx = 0;
+        let vy = 0;
+        
+        switch(this.shape) {
+          case 'circle':
+            const angle = Math.random() * Math.PI * 2;
+            const dist = Math.random() * this.radius;
+            x += Math.cos(angle) * dist;
+            y += Math.sin(angle) * dist;
+            break;
+            
+          case 'cone':
+            const coneAngle = this.angle + (Math.random() - 0.5) * this.spread;
+            const speed = 3 + Math.random() * 2;
+            vx = Math.cos(coneAngle) * speed;
+            vy = Math.sin(coneAngle) * speed;
+            break;
+            
+          case 'line':
+            const linePos = Math.random();
+            x += Math.cos(this.angle) * this.radius * linePos;
+            y += Math.sin(this.angle) * this.radius * linePos;
+            break;
+        }
+        
+        ParticleManager.spawnParticle(this.particleType, x, y, vx, vy);
+      }
+    };
+    
+    Game.customParticleEmitters.push(emitter);
+    return emitter;
+  },
+  
+  removeEmitter(id) {
+    const index = Game.customParticleEmitters.findIndex(e => e.id === id);
+    if (index !== -1) {
+      Game.customParticleEmitters.splice(index, 1);
+      return true;
+    }
+    return false;
+  },
+  
+  screenShake(intensity = 10, duration = 15) {
+    let frames = 0;
+    const shakeInterval = setInterval(() => {
+      frames++;
+      const strength = intensity * (1 - frames / duration);
+      canvas.style.transform = `translate(${(Math.random()-0.5)*strength}px, ${(Math.random()-0.5)*strength}px)`;
+      
+      if (frames >= duration) {
+        canvas.style.transform = '';
+        clearInterval(shakeInterval);
+      }
+    }, 16);
+  },
+  
+  screenFlash(color = '#ffffff', duration = 10) {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: ${color};
+      opacity: 0.8;
+      pointer-events: none;
+      z-index: 99999;
+      transition: opacity ${duration/60}s;
+    `;
+    document.body.appendChild(overlay);
+    
+    setTimeout(() => {
+      overlay.style.opacity = '0';
+      setTimeout(() => overlay.remove(), duration * 16);
+    }, 50);
+  }
+};
+
+function updateCustomParticles() {
+  Game.particles.forEach(p => {
+    if (p.onTick) {
+      p.onTick(p);
+    }
+    
+    p.life--;
+    
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vy += p.gravity || 0;
+    p.vx *= p.friction || 0.98;
+    p.vy *= p.friction || 0.98;
+    p.angle += p.rotationSpeed || 0;
+    
+    if (p.fadeOut) {
+      p.opacity = p.life / p.maxLife;
+    }
+    
+    if (p.shrink) {
+      p.currentSize = p.size * (p.life / p.maxLife);
+    }
+    
+    if (p.grow) {
+      p.currentSize = p.size * (1 + (1 - p.life / p.maxLife));
+    }
+    
+    if (p.life <= 0 && p.onDeath) {
+      p.onDeath(p);
+    }
+  });
+  
+  Game.customParticleEmitters.forEach(emitter => {
+    if (emitter.active) {
+      emitter.tick();
+    }
+  });
+  
+  Game.customParticleEmitters = Game.customParticleEmitters.filter(e => e.active);
+}
+
+ParticleManager.registerParticleType('explosion', {
+  color: '#ff6600',
+  size: 6,
+  lifetime: 30,
+  speed: 5,
+  fadeOut: true,
+  shrink: true
+});
+
+ParticleManager.registerParticleType('sparkle', {
+  color: '#ffff00',
+  size: 3,
+  shape: 'circle',
+  lifetime: 40,
+  speed: 2,
+  gravity: 0,
+  fadeOut: true
+});
+
+ParticleManager.registerParticleType('smoke', {
+  color: '#666666',
+  size: 8,
+  lifetime: 60,
+  speed: 1,
+  gravity: -0.02,
+  fadeOut: true,
+  grow: true
+});
+
+// ============================================
+// 🌊 ADVANCED WAVE CONTROL SYSTEM
+// ============================================
+
+const waveGeneratorRegistry = {};
+
+window.WaveManager = {
+  customGenerators: [],
+  waveEvents: {},
+  multiPathEnabled: false,
+  alternatePaths: [],
+  
+  registerWaveGenerator(id, generatorFn) {
+    waveGeneratorRegistry[id] = generatorFn;
+    console.log(`✅ Wave Generator: ${id}`);
+  },
+  
+  setWaveGenerator(id) {
+    const generator = waveGeneratorRegistry[id];
+    if (!generator) {
+      console.warn(`Wave generator ${id} not found`);
+      return false;
+    }
+    
+    Game.currentWaveGenerator = generator;
+    console.log(`🌊 Wave generator set to: ${id}`);
+    return true;
+  },
+  
+  registerWaveEvent(eventType, callback) {
+    if (!this.waveEvents[eventType]) {
+      this.waveEvents[eventType] = [];
+    }
+    this.waveEvents[eventType].push(callback);
+  },
+  
+  triggerWaveEvent(eventType, data) {
+    if (this.waveEvents[eventType]) {
+      this.waveEvents[eventType].forEach(fn => fn(data));
+    }
+  },
+  
+  spawnEnemyAt(type, position, delay = 0) {
+    setTimeout(() => {
+      const enemy = {
+        ...JSON.parse(JSON.stringify(enemyRegistry[type])),
+        id: 'enemy_' + Date.now() + Math.random(),
+        x: position.x || Game.path[0].x,
+        y: position.y || Game.path[0].y,
+        pathIndex: position.pathIndex || 0,
+        hp: enemyRegistry[type].hp,
+        maxHp: enemyRegistry[type].hp,
+        conditions: [],
+        speedMultiplier: 1
+      };
+      
+      if (typeof ModifierManager !== 'undefined') {
+        ModifierManager.applyToEnemy(enemy);
+      }
+      Game.enemies.push(enemy);
+      eventHooks.enemySpawned?.forEach(fn => fn(enemy));
+    }, delay);
+  },
+  
+  enableMultiPath(paths) {
+    this.multiPathEnabled = true;
+    this.alternatePaths = paths;
+    console.log(`🔀 Multi-path enabled with ${paths.length} paths`);
+  },
+  
+  disableMultiPath() {
+    this.multiPathEnabled = false;
+    this.alternatePaths = [];
+  },
+  
+  executeWaveScript(script) {
+    script.forEach(event => {
+      setTimeout(() => {
+        if (event.action === 'spawn') {
+          for (let i = 0; i < (event.count || 1); i++) {
+            this.spawnEnemyAt(event.enemy, event.position || {}, i * (event.interval || 0));
+          }
+        } else if (event.action === 'modifier') {
+          ModifierManager.registerGlobalModifier(event.id, event.config);
+        } else if (event.action === 'event') {
+          this.triggerWaveEvent(event.eventType, event.data);
+        }
+      }, event.time);
+    });
+  },
+  
+  generateCustomWave(waveNum) {
+    if (Game.currentWaveGenerator) {
+      return Game.currentWaveGenerator(waveNum, Game);
+    }
+    
+    return Game.generateWaveComposition(waveNum);
+  }
+};
+
+WaveManager.registerWaveGenerator('default', (waveNum, game) => {
+  return game.generateWaveComposition(waveNum);
+});
+
+WaveManager.registerWaveGenerator('boss_rush', (waveNum, game) => {
+  const composition = [];
+  const bossTypes = Object.keys(enemyRegistry).filter(id => 
+    enemyRegistry[id].hp > 500
+  );
+  
+  if (bossTypes.length > 0) {
+    const count = Math.max(1, Math.floor(waveNum / 2));
+    for (let i = 0; i < count; i++) {
+      composition.push(bossTypes[i % bossTypes.length]);
+    }
+  }
+  
+  return composition;
+});
+
+WaveManager.registerWaveGenerator('swarm', (waveNum, game) => {
+  const composition = [];
+  const count = 20 + waveNum * 5;
+  
+  const fastEnemies = Object.keys(enemyRegistry).filter(id =>
+    enemyRegistry[id].speed > 2
+  );
+  
+  const type = fastEnemies.length > 0 ? fastEnemies[0] : 'basic_creep';
+  
+  for (let i = 0; i < count; i++) {
+    composition.push(type);
+  }
+  
+  return composition;
+});
+
+WaveManager.registerWaveGenerator('mixed_chaos', (waveNum, game) => {
+  const composition = [];
+  const allTypes = Object.keys(enemyRegistry);
+  const count = 10 + waveNum * 3;
+  
+  for (let i = 0; i < count; i++) {
+    composition.push(allTypes[Math.floor(Math.random() * allTypes.length)]);
+  }
+  
+  return composition;
+});
+
+// ============================================
+// 🌐 GAME API
+// ============================================
+
+window.GameAPI = {
+  defineMod(config) {
+    const modInfo = {
+      id: config.id || 'mod_' + Date.now(),
+      name: config.name || 'Unnamed Mod',
+      author: config.author || 'Anonymous',
+      description: config.description || 'No description',
+      version: config.version || '1.0.0',
+      loadedAt: Date.now()
+    };
+    
+    if (!window.loadedModConfigs) window.loadedModConfigs = [];
+    window.loadedModConfigs.push(modInfo);
+    
+    console.log(`📦 Mod Loaded: ${modInfo.name} v${modInfo.version} by ${modInfo.author}`);
+    addModToList(`${modInfo.name} v${modInfo.version}`);
+    
+    return modInfo;
+  },
+  
+  registerTower(def) {
+    towerRegistry[def.id] = {
+      level: 1,
+      targetMode: 'first',
+      rotationSpeed: 0.2,
+      maxLevel: def.maxLevel || 5,
+      cost: def.cost || 50,
+      resourceCosts: def.resourceCosts || {gold: def.cost || 50},
+      resourceGenerator: def.resourceGenerator || null,
+      generateInterval: def.generateInterval || 180,
+      ...def
+    };
+    console.log(`✅ Tower: ${def.id}`);
+    rebuildTowerShop();
+  },
+  
+  registerEnemy(def) {
+    enemyRegistry[def.id] = def;
+    console.log(`✅ Enemy: ${def.id}`);
+  },
+  
+  registerProjectile(def) {
+    projectileRegistry[def.id] = def;
+    console.log(`✅ Projectile: ${def.id}`);
+  },
+  
+  registerBehavior(id, fn) {
+    behaviorRegistry[id] = fn;
+    console.log(`✅ Behavior: ${id}`);
+  },
+  
+  registerCondition(id, fn) {
+    conditionRegistry[id] = fn;
+    console.log(`✅ Condition: ${id}`);
+  },
+  
+  registerWaveModifier(id, config) {
+    if (!window.waveModifiers) window.waveModifiers = {};
+    window.waveModifiers[id] = config;
+    console.log(`✅ Wave Modifier: ${id}`);
+  },
+  
+  on(event, callback) {
+    if (eventHooks[event]) {
+      eventHooks[event].push(callback);
+    }
+  },
+  
+  registerResource(id, config) {
+    return ResourceManager.registerResource(id, config);
+  },
+  
+  getResource(id) {
+    return ResourceManager.getResource(id);
+  },
+  
+  addResource(id, amount) {
+    return ResourceManager.addResource(id, amount);
+  },
+  
+  spendResources(costs) {
+    return ResourceManager.spendResources(costs);
+  },
+  
+  saveModData(modId, key, value) {
+    return StateManager.saveModData(modId, key, value);
+  },
+  
+  loadModData(modId, key, defaultValue) {
+    return StateManager.loadModData(modId, key, defaultValue);
+  },
+  
+  saveSnapshot(label) {
+    return StateManager.saveSnapshot(label);
+  },
+  
+  loadSnapshot(index) {
+    return StateManager.loadSnapshot(index);
+  },
+  
+  undo() {
+    return StateManager.undo();
+  },
+  
+  registerGlobalModifier(id, config) {
+    return ModifierManager.registerGlobalModifier(id, config);
+  },
+  
+  removeModifier(id) {
+    return ModifierManager.removeModifier(id);
+  },
+  
+  getActiveModifiers() {
+    return ModifierManager.getActiveModifiers();
+  },
+  
+  registerParticleType(id, config) {
+    return ParticleManager.registerParticleType(id, config);
+  },
+  
+  spawnCustomParticle(typeId, x, y, vx, vy) {
+    return ParticleManager.spawnParticle(typeId, x, y, vx, vy);
+  },
+  
+  createEmitter(config) {
+    return ParticleManager.createEmitter(config);
+  },
+  
+  screenShake(intensity, duration) {
+    return ParticleManager.screenShake(intensity, duration);
+  },
+  
+  screenFlash(color, duration) {
+    return ParticleManager.screenFlash(color, duration);
+  },
+  
+  registerWaveGenerator(id, generatorFn) {
+    return WaveManager.registerWaveGenerator(id, generatorFn);
+  },
+  
+  setWaveGenerator(id) {
+    return WaveManager.setWaveGenerator(id);
+  },
+  
+  registerWaveEvent(eventType, callback) {
+    return WaveManager.registerWaveEvent(eventType, callback);
+  },
+  
+  spawnEnemyAt(type, position, delay) {
+    return WaveManager.spawnEnemyAt(type, position, delay);
+  },
+  
+  executeWaveScript(script) {
+    return WaveManager.executeWaveScript(script);
+  },
+  
+  Game,
+  
+  spawnParticle(x, y, color, size = 3, lifetime = 20, vx, vy) {
+    Game.particles.push({
+      x, y, color, size, lifetime, 
+      maxLife: lifetime, 
+      vx: vx !== undefined ? vx : (Math.random()-0.5)*3, 
+      vy: vy !== undefined ? vy : (Math.random()-0.5)*3,
+      gravity: 0.05
+    });
+  },
+  
+  spawnEffect(x, y, type, duration = 60) {
+    Game.effects.push({
+      x, y, type, duration, maxDuration: duration, frame: 0
+    });
+  },
+  
+  getNearestEnemy(x, y, range) {
+    let nearest = null;
+    let minDist = range;
+    
+    for (let enemy of Game.enemies) {
+      const dist = Math.hypot(enemy.x - x, enemy.y - y);
+      if (dist < minDist) {
+        minDist = dist;
+        nearest = enemy;
+      }
+    }
+    return nearest;
+  },
+  
+  getEnemiesInRange(x, y, range) {
+    return Game.enemies.filter(enemy => {
+      const dist = Math.hypot(enemy.x - x, enemy.y - y);
+      return dist <= range;
+    });
+  },
+  
+  damageEnemy(enemy, damage, source) {
+    if (enemy.shield > 0) {
+      enemy.shield -= damage;
+      if (enemy.shield < 0) {
+        enemy.hp += enemy.shield;
+        enemy.shield = 0;
+      }
+      return;
+    }
+    
+    enemy.hp -= damage;
+    
+    if (enemy.hp <= 0 && !enemy.dead) {
+      enemy.dead = true;
+      Game.addGold(enemy.reward);
+      Game.score += enemy.reward * 10;
+      
+      if (enemy.splits) {
+        for (let i = 0; i < enemy.splits; i++) {
+          const splitEnemy = {
+            ...JSON.parse(JSON.stringify(enemy)),
+            id: 'split_' + Date.now() + Math.random(),
+            hp: enemy.maxHp * 0.3,
+            maxHp: enemy.maxHp * 0.3,
+            size: (enemy.size || 12) * 0.6,
+            reward: Math.floor(enemy.reward * 0.3),
+            splits: 0,
+            x: enemy.x + (Math.random()-0.5)*30,
+            y: enemy.y + (Math.random()-0.5)*30
+          };
+          Game.enemies.push(splitEnemy);
+        }
+      }
+      
+      updateUI();
+      eventHooks.enemyKilled.forEach(fn => fn(enemy, source));
+    }
+  },
+  
+  ctx, canvas
+};
+
+// ============================================
+// 🔫 PROJECTILE SYSTEM
+// ============================================
+
+function fireProjectile(tower, target) {
+  const projDef = projectileRegistry[tower.projectile];
+  if (!projDef) {
+    console.warn(`Projectile "${tower.projectile}" not found`);
+    return;
+  }
+  
+  const proj = {
+    ...projDef,
+    id: 'proj_' + Date.now() + Math.random(),
+    x: tower.x,
+    y: tower.y,
+    angle: Math.atan2(target.y - tower.y, target.x - tower.x),
+    target: target,
+    damage: tower.damage,
+    onHit: tower.onHit,
+    source: tower,
+    dead: false
+  };
+  
+  Game.projectiles.push(proj);
+}
+
+// ============================================
+// 💫 CONDITION SYSTEM
+// ============================================
+
+function applyCondition(entity, type, duration) {
+  entity.conditions = entity.conditions || [];
+  
+  const existing = entity.conditions.find(c => c.type === type);
+  if (existing) {
+    existing.duration = Math.max(existing.duration, duration);
+  } else {
+    entity.conditions.push({type, duration});
+  }
+}
+
+// ============================================
+// 🎨 RENDERING
+// ============================================
+
+function render() {
+  ctx.fillStyle = '#1a1a2e';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  ctx.strokeStyle = 'rgba(78, 205, 196, 0.15)';
+  ctx.lineWidth = 45;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  Game.path.forEach((p, i) => {
+    if (i === 0) ctx.moveTo(p.x, p.y);
+    else ctx.lineTo(p.x, p.y);
+  });
+  ctx.stroke();
+  
+  Game.path.forEach((p, i) => {
+    ctx.fillStyle = i === 0 ? 'rgba(46, 204, 113, 0.3)' : i === Game.path.length - 1 ? 'rgba(231, 76, 60, 0.3)' : 'rgba(78, 205, 196, 0.2)';
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 8, 0, Math.PI * 2);
+    ctx.fill();
+  });
+  
+  eventHooks.renderWorld.forEach(fn => fn(ctx));
+  
+  Game.effects.forEach(effect => {
+    effect.frame++;
+    const progress = effect.frame / effect.maxDuration;
+    const alpha = 1 - progress;
+    const size = 30 + progress * 50;
+    
+    ctx.globalAlpha = alpha * 0.6;
+    ctx.fillStyle = effect.type === 'explosion' ? '#ff6600' : '#4ecdc4';
+    ctx.beginPath();
+    ctx.arc(effect.x, effect.y, size, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  });
+  
+  Game.towers.forEach(tower => {
+    const isSelected = tower === Game.selectedTower;
+    
+    if (isSelected) {
+      ctx.strokeStyle = 'rgba(78, 205, 196, 0.3)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(tower.x, tower.y, tower.range, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    
+    ctx.save();
+    ctx.translate(tower.x, tower.y);
+    
+    if (tower.rotate && tower.angle !== undefined) {
+      ctx.rotate(tower.angle);
+    }
+    
+    const baseSize = 15 + (tower.level || 1) * 2;
+    ctx.fillStyle = tower.color || '#e94560';
+    
+    if (tower.hasTarget) {
+      ctx.shadowBlur = 10;
+      ctx.shadowColor = tower.color || '#e94560';
+    }
+    
+    ctx.fillRect(-baseSize, -baseSize, baseSize*2, baseSize*2);
+    ctx.shadowBlur = 0;
+    
+    if (tower.rotate) {
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, -5, 20, 10);
+    }
+    
+    if (tower.level > 1) {
+      ctx.fillStyle = '#ffd700';
+      ctx.font = 'bold 10px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('★'.repeat(Math.min(tower.level - 1, 3)), 0, -baseSize - 5);
+    }
+    
+    ctx.restore();
+    
+    if (tower.beamTarget && !tower.beamTarget.dead) {
+      ctx.strokeStyle = tower.beamColor || '#ff00ff';
+      ctx.lineWidth = 3;
+      ctx.globalAlpha = 0.7;
+      ctx.beginPath();
+      ctx.moveTo(tower.x, tower.y);
+      ctx.lineTo(tower.beamTarget.x, tower.beamTarget.y);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+  });
+  
+  Game.enemies.forEach(enemy => {
+    const radius = enemy.size || 12;
+    
+    ctx.fillStyle = enemy.color || '#4ecdc4';
+    ctx.beginPath();
+    ctx.arc(enemy.x, enemy.y, radius, 0, Math.PI * 2);
+    ctx.fill();
+    
+    if (enemy.conditions && enemy.conditions.length > 0) {
+      enemy.conditions.forEach((cond, i) => {
+        ctx.fillStyle = getConditionColor(cond.type);
+        ctx.beginPath();
+        ctx.arc(enemy.x + (i-0.5)*10, enemy.y - radius - 10, 3, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    }
+    
+    const barWidth = 30;
+    const hpPercent = enemy.hp / enemy.maxHp;
+    
+    ctx.fillStyle = '#000';
+    ctx.fillRect(enemy.x - barWidth/2, enemy.y - radius - 20, barWidth, 4);
+    
+    ctx.fillStyle = hpPercent > 0.5 ? '#0f0' : hpPercent > 0.25 ? '#ff0' : '#f00';
+    ctx.fillRect(enemy.x - barWidth/2, enemy.y - radius - 20, barWidth * hpPercent, 4);
+    
+    if (enemy.shield > 0) {
+      const shieldPercent = enemy.shield / enemy.maxShield;
+      ctx.fillStyle = '#3498db';
+      ctx.fillRect(enemy.x - barWidth/2, enemy.y - radius - 25, barWidth * shieldPercent, 3);
+    }
+  });
+  
+  Game.projectiles.forEach(proj => {
+    const colors = proj.color || ['#ff3300', '#ffaa00'];
+    ctx.fillStyle = colors[Math.floor(Math.random() * colors.length)];
+    const opacity = proj.lifetime / proj.maxLifetime;
+    ctx.globalAlpha = opacity * 0.9;
+    
+    const size = proj.size || 4;
+    ctx.beginPath();
+    ctx.arc(proj.x, proj.y, size, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    
+    if (proj.trail !== false && Math.random() < 0.5) {
+      GameAPI.spawnParticle(proj.x, proj.y, ctx.fillStyle, 2, 8);
+    }
+  });
+  
+  Game.particles.forEach(p => {
+    const opacity = p.lifetime / p.maxLife;
+    ctx.fillStyle = p.color;
+    ctx.globalAlpha = opacity * 0.8;
+    ctx.fillRect(p.x - p.size/2, p.y - p.size/2, p.size, p.size);
+    ctx.globalAlpha = 1;
+  });
+  
+  if (Game.placingTower) {
+    const def = towerRegistry[Game.placingTower];
+    const canPlace = !isOnPath(Game.mouseX, Game.mouseY);
+    
+    ctx.globalAlpha = 0.6;
+    ctx.fillStyle = canPlace ? (def.color || '#e94560') : '#ff0000';
+    ctx.fillRect(Game.mouseX - 15, Game.mouseY - 15, 30, 30);
+    
+    ctx.strokeStyle = canPlace ? 'rgba(255,255,255,0.3)' : 'rgba(255,0,0,0.3)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(Game.mouseX, Game.mouseY, def.range, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    
+    ctx.fillStyle = Game.gold >= def.cost ? '#0f0' : '#f00';
+    ctx.font = 'bold 14px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('$' + def.cost, Game.mouseX, Game.mouseY - 25);
+  }
+  
+  eventHooks.renderUI.forEach(fn => fn(ctx));
+}
+
+function getConditionColor(type) {
+  const colors = {
+    burn: '#ff6600',
+    frozen: '#00ffff',
+    mega_freeze: '#00ffff',
+    poisoned: '#00ff00',
+    mega_poison: '#00ff00',
+    shocked: '#ffff00',
+    slow: '#9966ff',
+    burning: '#ff6600',
+    cursed: '#9900ff'
+  };
+  return colors[type] || '#ffffff';
+}
+
+function isOnPath(x, y) {
+  for (let i = 0; i < Game.path.length - 1; i++) {
+    const p1 = Game.path[i];
+    const p2 = Game.path[i + 1];
+    
+    const dist = distanceToLineSegment(x, y, p1.x, p1.y, p2.x, p2.y);
+    if (dist < 30) return true;
+  }
+  return false;
+}
+
+function distanceToLineSegment(px, py, x1, y1, x2, y2) {
+  const A = px - x1;
+  const B = py - y1;
+  const C = x2 - x1;
+  const D = y2 - y1;
+  
+  const dot = A * C + B * D;
+  const lenSq = C * C + D * D;
+  const param = lenSq !== 0 ? dot / lenSq : -1;
+  
+  let xx, yy;
+  
+  if (param < 0) {
+    xx = x1; 
+    yy = y1;
+  } else if (param > 1) {
+    xx = x2; 
+    yy = y2;
+  } else {
+    xx = x1 + param * C;
+    yy = y1 + param * D;
+  }
+  
+  const dx = px - xx;
+  const dy = py - yy;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+// ============================================
+// ⚙️ GAME LOOP
+// ============================================
+
+function update() {
+  if (typeof ModifierManager !== 'undefined') {
+    Game.towers.forEach(tower => {
+      ModifierManager.applyToTower(tower);
+    });
+  }
+  
+  Game.towers.forEach(tower => {
+    const behavior = behaviorRegistry[tower.behavior];
+    if (behavior) behavior(tower);
+  });
+  
+  Game.enemies.forEach(enemy => {
+    const behavior = behaviorRegistry[enemy.behavior];
+    if (behavior) behavior(enemy);
+  });
+  Game.enemies = Game.enemies.filter(e => !e.dead);
+  
+  Game.projectiles.forEach(proj => {
+    const behavior = behaviorRegistry[proj.behavior];
+    if (behavior) behavior(proj);
+  });
+  Game.projectiles = Game.projectiles.filter(p => !p.dead);
+  
+  Game.particles.forEach(p => {
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vy += p.gravity;
+    p.vx *= 0.98;
+    p.vy *= 0.98;
+    p.lifetime--;
+  });
+  Game.particles = Game.particles.filter(p => p.lifetime > 0);
+  
+  if (typeof updateCustomParticles !== 'undefined') {
+    updateCustomParticles();
+  }
+  
+  Game.effects = Game.effects.filter(e => e.frame < e.maxDuration);
+  
+  if (Game.waveActive && Game.enemies.length === 0 && Game.currentWaveEnemies.length > 0) {
+    const timeSinceStart = Date.now() - Game.waveStartTime;
+    const expectedDuration = Game.currentWaveEnemies.length * 700 + 2000;
+    
+    if (timeSinceStart > expectedDuration) {
+      Game.waveActive = false;
+      Game.waveStartTime = null;
+      
+      let goldReward = 50 + Game.wave * 15;
+      
+      if (Game.perfectWave) {
+        goldReward *= 1.5;
+        console.log('🏆 Perfect Wave Bonus! +50% gold');
+      }
+      
+      if (timeSinceStart < expectedDuration * 0.7) {
+        goldReward *= 1.25;
+        console.log('⚡ Fast Clear Bonus! +25% gold');
+      }
+      
+      goldReward += Game.bonusGold;
+      Game.bonusGold = 0;
+      
+      if (typeof ModifierManager !== 'undefined') {
+        goldReward *= ModifierManager.getTotalMultiplier('goldMultiplier');
+      }
+      
+      Game.addGold(Math.floor(goldReward));
+      
+      eventHooks.waveEnd?.forEach(fn => fn(Game.wave));
+      updateUI();
+      updateWavePreview();
+    }
+  }
+  
+  if (typeof ModifierManager !== 'undefined') {
+    ModifierManager.tick();
+  }
+  
+  eventHooks.tick.forEach(fn => fn());
+}
+
+function gameLoop() {
+  update();
+  render();
+  requestAnimationFrame(gameLoop);
+}
+
+// ============================================
+// 🖱️ INPUT HANDLING
+// ============================================
+
+canvas.addEventListener('mousemove', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  Game.mouseX = e.clientX - rect.left;
+  Game.mouseY = e.clientY - rect.top;
+});
+
+canvas.addEventListener('click', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  
+  if (Game.placingTower) {
+    const def = towerRegistry[Game.placingTower];
+    const costs = def.resourceCosts || {gold: def.cost};
+    
+    if (typeof ResourceManager !== 'undefined') {
+      if (ResourceManager.hasResources(costs) && !isOnPath(x, y)) {
+        ResourceManager.spendResources(costs);
+        
+        const tower = {
+          ...JSON.parse(JSON.stringify(def)),
+          id: 'tower_' + Date.now(),
+          x: x,
+          y: y,
+          angle: 0,
+          cooldownTimer: 0,
+          level: 1,
+          generateTimer: 0
+        };
+        
+        Game.towers.push(tower);
+        Game.gold = ResourceManager.getResource('gold');
+        updateUI();
+        eventHooks.towerPlaced.forEach(fn => fn(tower));
+        
+        if (typeof StateManager !== 'undefined') {
+          StateManager.saveSnapshot('tower_placed');
+        }
+        
+        for (let i = 0; i < 15; i++) {
+          GameAPI.spawnParticle(x, y, '#4ecdc4', 4, 30);
+        }
+      }
+    } else {
+      if (Game.gold >= def.cost && !isOnPath(x, y)) {
+        const tower = {
+          ...JSON.parse(JSON.stringify(def)),
+          id: 'tower_' + Date.now(),
+          x: x,
+          y: y,
+          angle: 0,
+          cooldownTimer: 0,
+          level: 1
+        };
+        
+        Game.towers.push(tower);
+        Game.gold -= def.cost;
+        updateUI();
+        eventHooks.towerPlaced.forEach(fn => fn(tower));
+        
+        for (let i = 0; i < 15; i++) {
+          GameAPI.spawnParticle(x, y, '#4ecdc4', 4, 30);
+        }
+      }
+    }
+    
+    Game.placingTower = null;
+    rebuildTowerShop();
+  } else {
+    let clickedTower = null;
+    for (let tower of Game.towers) {
+      if (Math.hypot(tower.x - x, tower.y - y) < 20) {
+        clickedTower = tower;
+        break;
+      }
+    }
+    
+    Game.selectedTower = clickedTower;
+    updateSelectedTowerInfo();
+  }
+});
+
+canvas.addEventListener('contextmenu', (e) => {
+  e.preventDefault();
+  Game.placingTower = null;
+  rebuildTowerShop();
+});
+
+// ============================================
+// 🎨 UI FUNCTIONS
+// ============================================
+
+function updateUI() {
+  document.getElementById('gold').textContent = Game.gold;
+  document.getElementById('lives').textContent = Game.lives;
+  document.getElementById('wave').textContent = Game.wave;
+  document.getElementById('score').textContent = Game.score;
+  document.getElementById('enemiesRemaining').textContent = Game.enemies.length;
+  
+  const btn = document.getElementById('startWaveBtn');
+  btn.disabled = Game.waveActive;
+  btn.textContent = Game.waveActive ? '⏳ Wave in Progress...' : '▶️ Start Wave ' + (Game.wave + 1);
+  
+  const skipBtn = document.getElementById('skipWaveBtn');
+  if (skipBtn) {
+    skipBtn.disabled = Game.waveActive;
+  }
+  
+  rebuildTowerShop();
+}
+
+function rebuildTowerShop() {
+  const shop = document.getElementById('towerShop');
+  shop.innerHTML = '';
+  
+  Object.values(towerRegistry).forEach(tower => {
+    const card = document.createElement('div');
+    card.className = 'tower-card';
+    
+    const canAfford = Game.gold >= tower.cost && !Game.placingTower;
+    if (!canAfford) card.classList.add('disabled');
+    
+    const isSelected = Game.placingTower === tower.id;
+    if (isSelected) card.classList.add('selected');
+    
+    card.innerHTML = `
+      <div class="tower-header">
+        <div class="tower-icon">${tower.icon || '🗼'}</div>
+        <div class="tower-name">${tower.name}</div>
+        <div class="tower-cost">💰 ${tower.cost}</div>
+      </div>
+      <div class="tower-stats">
+        <div class="tower-stat">⚔️ ${Math.round(tower.damage)} dmg</div>
+        <div class="tower-stat">🎯 ${Math.round(tower.range)} rng</div>
+        <div class="tower-stat">⏱️ ${(tower.cooldown/60).toFixed(1)}s</div>
+        <div class="tower-stat">🔫 ${tower.projectile || 'AOE'}</div>
+      </div>
+    `;
+    
+    card.onclick = () => {
+      if (canAfford) {
+        Game.placingTower = tower.id;
+        rebuildTowerShop();
+      }
+    };
+    
+    shop.appendChild(card);
+  });
+}
+
+function updateSelectedTowerInfo() {
+  const content = document.getElementById('towerInfoContent');
+  
+  if (!Game.selectedTower) {
+    content.innerHTML = '<em style="opacity: 0.6; font-size: 13px;">Click a tower on the map to select it</em>';
+    return;
+  }
+  
+  const t = Game.selectedTower;
+  const upgradeCost = Math.floor(t.cost * 0.5 * t.level);
+  const sellValue = Math.floor(t.cost * 0.7 * t.level);
+  
+  content.innerHTML = `
+    <div class="info-row">
+      <span style="font-size: 20px;">${t.icon || '🗼'} ${t.name}</span>
+      <span style="color: #ffd700;">Lvl ${t.level}/${t.maxLevel}</span>
+    </div>
+    <div class="info-row">
+      <span>Damage:</span>
+      <span>${Math.round(t.damage)}</span>
+    </div>
+    <div class="info-row">
+      <span>Range:</span>
+      <span>${Math.round(t.range)}</span>
+    </div>
+    <div class="info-row">
+      <span>Fire Rate:</span>
+      <span>${(60/t.cooldown).toFixed(1)}/s</span>
+    </div>
+    <div class="info-row">
+      <span>Target Mode:</span>
+      <span>${t.targetMode || 'first'}</span>
+    </div>
+    <button class="upgrade-btn" onclick="Game.upgradeTower(Game.selectedTower)" ${Game.gold < upgradeCost || t.level >= t.maxLevel ? 'disabled' : ''}>
+      ${t.level >= t.maxLevel ? '⭐ MAX LEVEL' : `⬆️ Upgrade (💰 ${upgradeCost})`}
+    </button>
+    <button class="upgrade-btn" onclick="Game.cycleTowerTargeting(Game.selectedTower)" style="background: #9b59b6; margin-top: 5px;">
+      🎯 Change Target Mode
+    </button>
+    <button class="sell-btn" onclick="Game.sellTower(Game.selectedTower)">
+      💸 Sell (💰 ${sellValue})
+    </button>
+  `;
+}
+
+function updateWavePreview() {
+  const preview = document.getElementById('wavePreview');
+  
+  if (Game.waveActive || Game.nextWavePreview.length === 0) {
+    preview.innerHTML = '<em style="opacity: 0.6; font-size: 12px;">Complete wave to preview next</em>';
+    return;
+  }
+  
+  const counts = {};
+  Game.nextWavePreview.forEach(type => {
+    counts[type] = (counts[type] || 0) + 1;
+  });
+  
+  preview.innerHTML = '';
+  Object.entries(counts).forEach(([type, count]) => {
+    const def = enemyRegistry[type];
+    if (!def) return;
+    
+    const item = document.createElement('div');
+    item.className = 'wave-enemy-item';
+    item.innerHTML = `
+      <span style="display: flex; align-items: center; gap: 8px;">
+        <span style="width: 12px; height: 12px; border-radius: 50%; background: ${def.color || '#4ecdc4'};"></span>
+        <span>${type}</span>
+      </span>
+      <span class="wave-enemy-count">×${count}</span>
+    `;
+    preview.appendChild(item);
+  });
+  
+  const total = document.createElement('div');
+  total.style.marginTop = '8px';
+  total.style.textAlign = 'center';
+  total.style.fontWeight = 'bold';
+  total.style.color = '#4ecdc4';
+  total.style.fontSize = '12px';
+  total.textContent = `Total: ${Game.nextWavePreview.length} enemies`;
+  preview.appendChild(total);
+}
+
+function updateWaveModifierDisplay() {
+  const display = document.getElementById('waveModifierDisplay');
+  if (!display) return;
+  
+  if (Game.waveModifier) {
+    display.className = 'wave-modifier-display';
+    display.innerHTML = `<strong>🎲 ${Game.waveModifier.name}</strong><br>${Game.waveModifier.description}`;
+    display.style.display = 'block';
+  } else {
+    display.style.display = 'none';
+  }
+}
+
+// ============================================
+// 📦 MOD SYSTEM
+// ============================================
+
+let modCounter = 0;
+
+function executeModCode() {
+  const code = document.getElementById('modEditor').value;
+  if (!code.trim()) {
+    alert('⚠️ Editor is empty!');
+    return;
+  }
+  
+  try {
+    eval(code);
+    modCounter++;
+    if (!window.loadedModConfigs || window.loadedModConfigs.length === 0 || 
+        window.loadedModConfigs[window.loadedModConfigs.length - 1].id === 'mod_' + Date.now()) {
+      addModToList(`Custom Mod #${modCounter}`);
+    }
+    alert('✅ Mod loaded successfully!');
+    document.getElementById('modEditor').value = '';
+  } catch (err) {
+    alert('❌ Error:\n' + err.message);
+    console.error(err);
+  }
+}
+
+function loadModFromFile(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      eval(e.target.result);
+      if (!window.loadedModConfigs || window.loadedModConfigs.length === 0) {
+        addModToList(file.name);
+      }
+      alert('✅ Loaded: ' + file.name);
+    } catch (err) {
+      alert('❌ Error:\n' + err.message);
+      console.error(err);
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+function clearEditor() {
+  document.getElementById('modEditor').value = '';
+}
+
+function addModToList(name) {
+  const modList = document.getElementById('modList');
+  const item = document.createElement('div');
+  item.className = 'mod-item';
+  item.textContent = '✓ ' + name;
+  
+  if (window.loadedModConfigs && window.loadedModConfigs.length > 0) {
+    const lastMod = window.loadedModConfigs[window.loadedModConfigs.length - 1];
+    item.title = `${lastMod.description}\nAuthor: ${lastMod.author}\nVersion: ${lastMod.version}`;
+  }
+  
+  modList.appendChild(item);
+}
+
+function showModExamples() {
+  document.getElementById('modEditor').value = `// 📦 MOD TEMPLATE
+
+const MyMod = GameAPI.defineMod({
+  id: 'my_mod_id',
+  name: 'My Awesome Mod',
+  author: 'Your Name',
+  description: 'What this mod does',
+  version: '1.0.0'
+});
+
+// Example: Custom resource
+GameAPI.registerResource('mana', {
+  name: 'Mana',
+  icon: '🔮',
+  color: '#9c27b0',
+  defaultValue: 50,
+  max: 500
+});
+
+// Example: Tower with resource cost
+GameAPI.registerTower({
+  id: 'magic_tower',
+  name: 'Magic Tower',
+  icon: '🔮',
+  cost: 150,
+  resourceCosts: {
+    gold: 100,
+    mana: 30
+  },
+  range: 150,
+  damage: 20,
+  cooldown: 40,
+  rotate: true,
+  projectile: 'bullet',
+  behavior: 'SEEK_AND_SHOOT',
+  color: '#9c27b0',
+  maxLevel: 10
+});
+
+console.log('✅ Mod loaded!');`;
+}
+
+// ============================================
+// 💾 SAVE/LOAD
+// ============================================
+
+function saveGame() {
+  const saveData = {
+    gold: Game.gold,
+    lives: Game.lives,
+    wave: Game.wave,
+    score: Game.score,
+    gameMode: Game.gameMode,
+    resources: Game.resources,
+    towers: Game.towers.map(t => ({
+      id: t.id,
+      x: t.x,
+      y: t.y,
+      level: t.level,
+      targetMode: t.targetMode,
+      towerId: Object.keys(towerRegistry).find(k => towerRegistry[k].name === t.name)
+    }))
+  };
+  
+  localStorage.setItem('tdSave', JSON.stringify(saveData));
+  alert('💾 Game saved!');
+}
+
+function loadGame() {
+  const data = localStorage.getItem('tdSave');
+  if (!data) {
+    alert('⚠️ No save found!');
+    return;
+  }
+  
+  const saveData = JSON.parse(data);
+  Game.gold = saveData.gold;
+  Game.lives = saveData.lives;
+  Game.wave = saveData.wave;
+  Game.score = saveData.score;
+  Game.gameMode = saveData.gameMode || 'normal';
+  Game.resources = saveData.resources || {gold: saveData.gold};
+  
+  Game.towers = saveData.towers.map(t => {
+    const def = towerRegistry[t.towerId];
+    return {...JSON.parse(JSON.stringify(def)), ...t};
+  });
+  
+  updateUI();
+  alert('📂 Game loaded!');
+}
+
+function resetGame() {
+  if (!confirm('🔄 Reset everything?')) return;
+  
+  Game.gold = 200;
+  Game.lives = 20;
+  Game.wave = 0;
+  Game.score = 0;
+  Game.towers = [];
+  Game.enemies = [];
+  Game.projectiles = [];
+  Game.particles = [];
+  Game.waveActive = false;
+  Game.selectedTower = null;
+  Game.gameMode = 'normal';
+  Game.resources = {gold: 200, mana: 0, souls: 0, energy: 100};
+  
+  document.getElementById('gameModeSelect').value = 'normal';
+  
+  updateUI();
+  updateSelectedTowerInfo();
+}
+
+// ============================================
+// 🚀 INIT
+// ============================================
+
+function init() {
+  console.log('🎮 Advanced Tower Defense Engine Ready!');
+  
+  loadBehaviors();
+  
+  setTimeout(() => {
+    loadWaveModifiers();
+    loadAdvancedEnemies();
+    loadBaseContent();
+    updateUI();
+    updateSelectedTowerInfo();
+    updateWavePreview();
+    gameLoop();
+  }, 100);
+}
+
+function loadBehaviors() {
+  const script = document.createElement('script');
+  script.src = 'behaviors.js';
+  script.onload = () => {
+    console.log('✅ Behaviors loaded');
+    addModToList('Core Behaviors');
+  };
+  script.onerror = () => {
+    console.error('❌ Failed to load behaviors.js');
+    alert('⚠️ behaviors.js not found! Place it in the same folder as index.html');
+  };
+  document.head.appendChild(script);
+}
+
+function loadWaveModifiers() {
+  GameAPI.registerWaveModifier('speed_boost', {
+    name: 'Speed Surge',
+    speedBoost: 1.5,
+    description: 'Enemies move 50% faster'
+  });
+  
+  GameAPI.registerWaveModifier('health_boost', {
+    name: 'Fortified',
+    hpBoost: 2,
+    description: 'Enemies have 2x HP'
+  });
+  
+  GameAPI.registerWaveModifier('swarm', {
+    name: 'Swarm',
+    countMultiplier: 1.5,
+    description: 'Enemy count increased'
+  });
+  
+  GameAPI.registerWaveModifier('armored', {
+    name: 'Armored',
+    hpBoost: 1.5,
+    speedBoost: 0.8,
+    description: 'Enemies slower but tankier'
+  });
+  
+  console.log('✅ Wave Modifiers loaded');
+}
+
+function loadAdvancedEnemies() {
+  GameAPI.registerEnemy({
+    id: 'flying_enemy',
+    hp: 40,
+    speed: 2.5,
+    reward: 20,
+    color: '#66ccff',
+    size: 10,
+    behavior: 'FLY_TO_GOAL',
+    flying: true
+  });
+  
+  GameAPI.registerEnemy({
+    id: 'shielded_enemy',
+    hp: 80,
+    shield: 50,
+    speed: 1.2,
+    reward: 25,
+    color: '#3498db',
+    size: 14,
+    behavior: 'FOLLOW_PATH'
+  });
+  
+  GameAPI.registerEnemy({
+    id: 'splitter_enemy',
+    hp: 60,
+    speed: 1.8,
+    reward: 30,
+    color: '#e74c3c',
+    size: 13,
+    behavior: 'FOLLOW_PATH',
+    splits: 2
+  });
+  
+  GameAPI.registerEnemy({
+    id: 'boss',
+    hp: 1000,
+    speed: 0.5,
+    reward: 100,
+    color: '#8b0000',
+    size: 30,
+    behavior: 'REGENERATING_WALK'
+  });
+  
+  GameAPI.registerEnemy({
+    id: 'teleporter_enemy',
+    hp: 50,
+    speed: 1.5,
+    reward: 35,
+    color: '#9b59b6',
+    size: 12,
+    behavior: 'TELEPORT_DASH'
+  });
+  
+  console.log('✅ Advanced Enemies loaded');
+}
+
+function loadBaseContent() {
+  GameAPI.registerProjectile({
+    id: 'bullet',
+    speed: 6,
+    lifetime: 60,
+    maxLifetime: 60,
+    color: ['#ffff00', '#ffaa00'],
+    behavior: 'FIRE_PROJECTILE'
+  });
+
+  GameAPI.registerProjectile({
+    id: 'fire_pixel',
+    speed: 4,
+    lifetime: 50,
+    maxLifetime: 50,
+    color: ['#ff3300', '#ff6600', '#ffaa00'],
+    behavior: 'FIRE_PROJECTILE'
+  });
+
+  GameAPI.registerCondition('burn', (enemy) => {
+    enemy.hp -= 0.3;
+    if (Math.random() < 0.2) {
+      GameAPI.spawnParticle(
+        enemy.x + (Math.random()-0.5)*20,
+        enemy.y + (Math.random()-0.5)*20,
+        '#ff6600', 3, 15
+      );
+    }
+  });
+
+  GameAPI.registerTower({
+    id: 'basic_tower',
+    name: 'Gun Tower',
+    icon: '🔫',
+    cost: 50,
+    range: 120,
+    damage: 10,
+    cooldown: 30,
+    rotate: true,
+    projectile: 'bullet',
+    behavior: 'SEEK_AND_SHOOT',
+    color: '#888',
+    maxLevel: 10
+  });
+
+  GameAPI.registerTower({
+    id: 'rapid_tower',
+    name: 'Minigun',
+    icon: '🔥',
+    cost: 100,
+    range: 110,
+    damage: 4,
+    cooldown: 8,
+    rotate: true,
+    projectile: 'bullet',
+    behavior: 'RAPID_FIRE',
+    color: '#e94560',
+    maxLevel: 8
+  });
+
+  GameAPI.registerTower({
+    id: 'sniper_tower',
+    name: 'Sniper',
+    icon: '🎯',
+    cost: 150,
+    range: 300,
+    damage: 80,
+    cooldown: 120,
+    rotate: true,
+    projectile: 'bullet',
+    behavior: 'SNIPER_SHOT',
+    color: '#2d4059',
+    maxLevel: 7
+  });
+
+  GameAPI.registerTower({
+    id: 'mortar_tower',
+    name: 'Mortar',
+    icon: '💣',
+    cost: 180,
+    range: 200,
+    damage: 25,
+    cooldown: 90,
+    rotate: false,
+    splashRange: 60,
+    behavior: 'MORTAR_STRIKE',
+    color: '#8b4513',
+    maxLevel: 6
+  });
+
+  GameAPI.registerTower({
+    id: 'slow_tower',
+    name: 'Ice Tower',
+    icon: '❄️',
+    cost: 130,
+    range: 100,
+    damage: 0,
+    cooldown: 60,
+    rotate: false,
+    behavior: 'SLOW_AURA',
+    color: '#00bcd4',
+    maxLevel: 5
+  });
+
+  GameAPI.registerEnemy({
+    id: 'basic_creep',
+    hp: 50,
+    speed: 1.5,
+    reward: 10,
+    color: '#4ecdc4',
+    behavior: 'FOLLOW_PATH'
+  });
+
+  GameAPI.registerEnemy({
+    id: 'fast_creep',
+    hp: 30,
+    speed: 3,
+    reward: 15,
+    color: '#95e1d3',
+    behavior: 'FOLLOW_PATH'
+  });
+
+  GameAPI.registerEnemy({
+    id: 'tank_creep',
+    hp: 200,
+    speed: 0.8,
+    reward: 30,
+    color: '#f38181',
+    size: 16,
+    behavior: 'FOLLOW_PATH'
+  });
+
+  addModToList('Base Content');
+  console.log('✅ Base content loaded');
+}
+
+// Register default behavior for resource generator
+GameAPI.registerBehavior('RESOURCE_GENERATOR', function(tower) {
+  if (!tower.resourceGenerator) return;
+  
+  tower.generateTimer = (tower.generateTimer || 0) + 1;
+  
+  if (tower.generateTimer >= (tower.generateInterval || 180)) {
+    tower.generateTimer = 0;
+    
+    Object.entries(tower.resourceGenerator).forEach(([resourceId, amount]) => {
+      if (typeof ResourceManager !== 'undefined') {
+        ResourceManager.addResource(resourceId, amount);
+        
+        const resource = resourceRegistry[resourceId];
+        if (resource) {
+          for (let i = 0; i < 5; i++) {
+            GameAPI.spawnParticle(
+              tower.x, tower.y,
+              resource.color, 4, 30,
+              (Math.random()-0.5)*2,
+              -Math.random()*2
+            );
+          }
+        }
+      }
+    });
+  }
+});
+
+init();
+</script>
+</body>
+</html>
