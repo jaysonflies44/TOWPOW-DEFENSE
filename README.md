@@ -1,4 +1,4 @@
-```markdown
+
 # 🎮 Advanced Tower Defense Engine
 
 **by jaay** • vibe-coded for fun
@@ -720,5 +720,4 @@ GameAPI.registerEvolution({
   },
   killCount: 10
 });
-```
 ```
