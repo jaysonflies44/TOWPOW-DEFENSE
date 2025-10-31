@@ -3,8 +3,9 @@
 
 **by jaay** • vibe-coded for fun
 
-A fully moddable browser-based tower defense game with visual scripting, evolution systems, and projectile interactions.
+- A fully moddable browser-based tower defense game with visual scripting, evolution systems, and projectile interactions.
 
+- App contains bugs that affect modding, gameplay and user experience that i couldnt fix because they were left ignored by me, i did debugged some, but as more features were added, more bugs appeared. but dw, the bugs didnt fully bugged the modding thing, but there maybe some errors in terms of UI etc. pls Go ahead and download this repository and fix the bugs or fork the repo. OR you can just use mods to fix the bugs if THAT mod isnt affected by that bug then it would be a great help to the modding community as well as our users. Thanks
 ---
 
 ## 🚀 Quick Start
